@@ -1,3 +1,4 @@
+import 'package:danielabake/core/common/shimmer/shimmer_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../profile_screens/screens/favorite_items.dart';
@@ -28,7 +29,17 @@ class AllCategoryScreen extends StatelessWidget {
       body: Obx(() {
         // Loader
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return GridView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: 8,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              childAspectRatio: 0.7,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemBuilder: (_, __) => ShimmerWidgets.categoryPill(),
+          );
         }
 
         // Response null হলে

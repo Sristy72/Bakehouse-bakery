@@ -1,4 +1,5 @@
 import 'dart:developer' as DPrint;
+import 'package:danielabake/core/common/shimmer/shimmer_widgets.dart';
 import 'package:danielabake/core/common/widgets/appbar_text.dart';
 import 'package:danielabake/core/common/widgets/text_with_view_all_button.dart';
 import 'package:danielabake/features/home/controller/favorite_food_controller.dart';
@@ -200,11 +201,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Obx(() {
                 final data = _homeController.popularItem.value;
 
+                Widget child;
                 if (data == null) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (data.items.isEmpty) {
+                  child = _buildPopularShimmer(gridCount, width);
+                } else if (data.items.isEmpty) {
                   final day = selectedDay.value == 'Today'
                       ? DropdownWithButton.weekdays[DateTime.now().weekday - 1]
                       : selectedDay.value;
@@ -216,89 +216,94 @@ class _HomeScreenState extends State<HomeScreen> {
                     message = "No items available on sunday";
                   }
 
-                  return Center(child: Text(message));
+                  child = Center(
+                    key: const ValueKey('popular-empty'),
+                    child: Text(message),
+                  );
+                } else {
+                  child = GridView.builder(
+                    key: const ValueKey('popular-grid'),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: gridCount,
+                      mainAxisExtent: 255,
+                      crossAxisSpacing: width * 0.025,
+                      mainAxisSpacing: width * 0.025,
+                    ),
+                    itemCount: data.items.length,
+                    itemBuilder: (_, index) {
+                      final item = data.items[index];
+                      final isFavorite = false.obs;
+
+                      return GestureDetector(
+                        onTap: () {
+                          Get.to(
+                            () => FoodDetailScreen(
+                              food: FoodModel(
+                                title: item.name,
+                                description: item.description,
+                                image: item.image,
+                                ingredients: item.ingredients,
+                                price: item.price.toString(),
+                                id: item.id,
+                                images: item.images,
+                              ),
+                            ),
+                          );
+                        },
+                        child: FoodCard(
+                          imagePath: item.image,
+                          title: item.name,
+                          description: item.description,
+                          price: item.price.toString(),
+                          itemId: item.id,
+                          isFavorite: isFavorite,
+                          onAdd: () async {
+                            try {
+                              await _cartController.addCart(item.id, 1);
+                              Get.snackbar(
+                                'Success',
+                                '${item.name} added to cart',
+                                backgroundColor: Colors.green,
+                                colorText: Colors.white,
+                                margin: const EdgeInsets.all(12),
+                                duration: const Duration(seconds: 2),
+                              );
+                            } catch (e) {
+                              Get.snackbar(
+                                'Error',
+                                'Failed to add ${item.name} to cart',
+                              );
+                            }
+                          },
+                          onFavoriteToggle: (newValue) async {
+                            try {
+                              if (newValue) {
+                                await _favoriteFoodController.favorite(item.id);
+                                isFavorite.value = true;
+                              } else {
+                                await _favoriteFoodController.removeFavorite(
+                                  item.id,
+                                );
+                                isFavorite.value = false;
+                              }
+                            } catch (e) {
+                              DPrint.log("Favorite toggle error: $e");
+                            }
+                          },
+                          rating: item.rating,
+                          reviewCount: item.reviewsCount,
+                        ),
+                      );
+                    },
+                  );
                 }
 
-                return GridView.builder(
-                  shrinkWrap: true,
-                  // ← Required #1
-                  physics: const NeverScrollableScrollPhysics(),
-                  // ← Required #2 (disable inner scroll)
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  // optional, looks better
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: gridCount,
-                    mainAxisExtent: 255,
-                    crossAxisSpacing: width * 0.025,
-                    mainAxisSpacing: width * 0.025,
-                  ),
-                  itemCount: data.items.length,
-                  itemBuilder: (_, index) {
-                    final item = data.items[index];
-                    final isFavorite = false
-                        .obs; // ← consider moving this outside if you want real favorite state
-
-                    return GestureDetector(
-                      onTap: () {
-                        Get.to(
-                          () => FoodDetailScreen(
-                            food: FoodModel(
-                              title: item.name,
-                              description: item.description,
-                              image: item.image,
-                              ingredients: item.ingredients,
-                              price: item.price.toString(),
-                              id: item.id,
-                              images: item.images,
-                            ),
-                          ),
-                        );
-                      },
-                      child: FoodCard(
-                        imagePath: item.image,
-                        title: item.name,
-                        description: item.description,
-                        price: item.price.toString(),
-                        itemId: item.id,
-                        isFavorite: isFavorite,
-                        onAdd: () async {
-                          try {
-                            await _cartController.addCart(item.id, 1);
-                            Get.snackbar(
-                              'Success',
-                              '${item.name} added to cart',
-                              backgroundColor: Colors.green,
-                              colorText: Colors.white,
-                              margin: const EdgeInsets.all(12),
-                              duration: const Duration(seconds: 2),
-                            );
-                          } catch (e) {
-                            Get.snackbar(
-                              'Error',
-                              'Failed to add ${item.name} to cart',
-                            );
-                          }
-                        },
-                        onFavoriteToggle: (newValue) async {
-                          try {
-                            if (newValue) {
-                              await _favoriteFoodController.favorite(item.id);
-                              isFavorite.value = true;
-                            } else {
-                              await _favoriteFoodController.removeFavorite(
-                                item.id,
-                              );
-                              isFavorite.value = false;
-                            }
-                          } catch (e) {
-                            DPrint.log("Favorite toggle error: $e");
-                          }
-                        },
-                        rating: item.rating,
-                        reviewCount: item.reviewsCount,
-                      ),
-                    );
-                  },
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: child,
                 );
               }),
 
@@ -307,6 +312,23 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPopularShimmer(int gridCount, double width) {
+    return GridView.builder(
+      key: const ValueKey('popular-shimmer'),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: gridCount,
+        mainAxisExtent: 255,
+        crossAxisSpacing: width * 0.025,
+        mainAxisSpacing: width * 0.025,
+      ),
+      itemCount: gridCount * 2,
+      itemBuilder: (_, __) => ShimmerWidgets.foodGridCard(),
     );
   }
 

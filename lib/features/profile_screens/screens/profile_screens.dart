@@ -1,3 +1,4 @@
+import 'package:danielabake/core/common/shimmer/shimmer_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/profile_controller.dart';
@@ -27,20 +28,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final user = _profileController.userInfo.value;
 
           if (user == null) {
-            return const CircularProgressIndicator(); // Loading state
+            return Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: ShimmerWidgets.profileHeader(),
+            );
           }
 
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ProfileCard(
-                name: user.fullName,
-                imagePath: user.avatarUrl,
-                orders: user.totalOrders.toString(),
-                favorites: user.totalFavorites.toString(),
-                onEdit: () {
-                  print('Edit clicked');
-                },
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: SingleChildScrollView(
+              key: const ValueKey('profile-content'),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ProfileCard(
+                  name: user.fullName,
+                  imagePath: user.avatarUrl,
+                  orders: user.totalOrders.toString(),
+                  favorites: user.totalFavorites.toString(),
+                  onEdit: () {
+                    print('Edit clicked');
+                  },
+                ),
               ),
             ),
           );

@@ -1,7 +1,9 @@
-import 'package:danielabake/core/common/widgets/abbbar_search.dart';
+import 'package:danielabake/core/common/shimmer/shimmer_loader.dart';
+import 'package:danielabake/core/common/shimmer/shimmer_widgets.dart';
 import 'package:danielabake/core/common/widgets/app_scaffold.dart';
 import 'package:danielabake/core/common/widgets/button_widgets.dart';
 import 'package:danielabake/features/Order_screen/widget/checkout_card.dart';
+import 'package:danielabake/features/Order_screen/widget/simmer_card.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/order_controller.dart';
@@ -38,31 +40,65 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Color(0x2EFFB972), // full width to bottom
-        ),
-        child: Padding(
-          padding: const EdgeInsets.only(top: 20.0, left: 15, right: 15, bottom: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // important to avoid full-screen height
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text("Total", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-                  Text("\$${controller.cart.value!.total.toStringAsFixed(2)}",
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
-                ],
-              ),
-              SizedBox(height: 10),
-              PrimaryButton(
-                  text: 'Continue',
-                  onSimplePressed: () => Get.to(() => Checkout2Screen())),
-            ],
+      bottomNavigationBar: Obx(() {
+        final cart = controller.cart.value;
+
+        if (cart == null) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ShimmerLoader(
+                  isLoading: true,
+                  baseColor: Colors.orange.shade100,
+                  highlightColor: Colors.orange.shade50,
+                  child: Container(
+                    width: double.infinity,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ShimmerWidgets.buttonLoader(height: 64),
+              ],
+            ),
+          );
+        }
+
+        if (cart.items.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0x2EFFB972),
           ),
-        ),
-      ),
+          child: Padding(
+            padding: const EdgeInsets.only(top: 20.0, left: 15, right: 15, bottom: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("Total", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+                    Text("\$${cart.total.toStringAsFixed(2)}",
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                PrimaryButton(
+                    text: 'Continue',
+                    onSimplePressed: () => Get.to(() => Checkout2Screen())),
+              ],
+            ),
+          ),
+        );
+      }),
 
       body: Column(
         children: [
@@ -70,12 +106,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Obx(() {
-                if (controller.cart.value == null) {
-                  return const Center(child: CircularProgressIndicator());
+          child: Obx(() {
+                final cart = controller.cart.value;
+                if (cart == null) {
+                  return ListView.builder(
+                    itemCount: 4,
+                    itemBuilder: (_, __) => const ShimmerCartItemCard(),
+                  );
                 }
 
-                final cartItems = controller.cart.value!.items;
+                final cartItems = cart.items;
 
                 if (cartItems.isEmpty) {
                   return const Center(child: Text('Your cart is empty'));

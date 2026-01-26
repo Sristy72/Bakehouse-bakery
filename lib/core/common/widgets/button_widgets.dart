@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../theme/app_colors.dart';
+import '../shimmer/shimmer_loader.dart';
 
 class PrimaryButton extends StatelessWidget {
   final Future<void> Function()? onApiPressed; // For API calls (with loading)
@@ -82,12 +83,17 @@ class PrimaryButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(borderRadius),
               ),
               child: isLoading.value
-                  ? SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(textColor),
+                  ? ShimmerLoader(
+                      isLoading: true,
+                      baseColor: Colors.white.withOpacity(0.35),
+                      highlightColor: Colors.white.withOpacity(0.8),
+                      child: Container(
+                        width: 70,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     )
                   : Text(
@@ -183,12 +189,17 @@ class SecondaryButton extends StatelessWidget {
                 border: Border.all(color: borderColor, width: borderWidth),
               ),
               child: isLoading.value
-                  ? SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(textColor),
+                  ? ShimmerLoader(
+                      isLoading: true,
+                      baseColor: borderColor.withOpacity(0.2),
+                      highlightColor: borderColor.withOpacity(0.6),
+                      child: Container(
+                        width: 70,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: borderColor.withOpacity(0.35),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     )
                   : Text(

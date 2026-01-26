@@ -1,3 +1,4 @@
+import 'package:danielabake/core/common/shimmer/shimmer_widgets.dart';
 import 'package:danielabake/features/profile_screens/screens/favorite_items.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -14,7 +15,19 @@ class CategorySection extends StatelessWidget {
 
     return Obx(() {
       if (controller.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          child: SizedBox(
+            key: const ValueKey('category-shimmer'),
+            height: 160,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: 6,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (_, __) => ShimmerWidgets.categoryPill(width: 130, height: 150),
+            ),
+          ),
+        );
       }
 
       final response = controller.category.value;
@@ -25,36 +38,39 @@ class CategorySection extends StatelessWidget {
 
       final categories = response.data; // List<Category>
 
-      return SizedBox(
-        height: 160,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: categories.length,       //FIXED
-          //padding: const EdgeInsets.symmetric(horizontal: 16),
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
-          itemBuilder: (context, index) {
-            final cat = categories[index];
-            if (cat.name.toLowerCase() == "favorite items") {
-              return CategoryCard(
-                title: cat.name,
-                imageUrl: cat.image,
-                bgColor: Color(cat.bgColor),
-                onTap: () => Get.to(() => const FavoriteItems()),
-              );
-            } else {
-              return CategoryCard(
-                title: cat.name,
-                imageUrl: cat.image,
-                bgColor: Color(cat.bgColor),
-                onTap: () {
-                  Get.to(() => FoodListScreen(
-                    categoryId: cat.id,
-                    categoryName: cat.name,
-                  ));
-                },
-              );
-            }//FIXED
-          },
+      return AnimatedSwitcher(
+        duration: const Duration(milliseconds: 220),
+        child: SizedBox(
+          key: const ValueKey('category-loaded'),
+          height: 160,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: categories.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final cat = categories[index];
+              if (cat.name.toLowerCase() == "favorite items") {
+                return CategoryCard(
+                  title: cat.name,
+                  imageUrl: cat.image,
+                  bgColor: Color(cat.bgColor),
+                  onTap: () => Get.to(() => const FavoriteItems()),
+                );
+              } else {
+                return CategoryCard(
+                  title: cat.name,
+                  imageUrl: cat.image,
+                  bgColor: Color(cat.bgColor),
+                  onTap: () {
+                    Get.to(() => FoodListScreen(
+                      categoryId: cat.id,
+                      categoryName: cat.name,
+                    ));
+                  },
+                );
+              }
+            },
+          ),
         ),
       );
     });

@@ -1,13 +1,11 @@
+import 'package:danielabake/core/common/shimmer/shimmer_loader.dart';
+import 'package:danielabake/core/common/shimmer/shimmer_widgets.dart';
 import 'package:danielabake/core/common/widgets/app_scaffold.dart';
 import 'package:danielabake/features/Order_screen/controller/order_controller.dart';
-import 'package:danielabake/features/profile_screens/controller/review_controller.dart';
-import 'package:danielabake/features/review_rating/controllers/rating_controller.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/common/widgets/button_widgets.dart';
-import '../widgets/text_formatter.dart';
+import '../../Order_screen/models/response/get_order_by_id_response_model.dart';
 
 class MyOrdersScreen extends StatefulWidget {
   const MyOrdersScreen({super.key});
@@ -29,8 +27,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
   void initState() {
     super.initState();
     tabController = TabController(length: 2, vsync: this);
-    orderController.fetchOngoingOrders();
-    orderController.fetchCompletedOrders();
+    orderController.refreshOrders();
   }
 
   @override
@@ -82,36 +79,39 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
   }
 
   Widget _ongoingList() {
-    return Obx(() {
-      if (orderController.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
-      }
-
-      final data = orderController.ongoingOrder.value;
-      if (data == null || data.orders.isEmpty) {
-        return const Center(child: Text("No ongoing orders"));
-      }
-
-      return ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: data.orders.length,
-        itemBuilder: (context, index) {
-          final order = data.orders[index];
-          return _buildOrderCard(order);
-        },
-      );
-    });
+    return _orderList(
+      orderController.ongoingOrder,
+      emptyMessage: "No ongoing orders",
+    );
   }
 
   Widget _completedList() {
+    return _orderList(
+      orderController.completedOrder,
+      emptyMessage: "No completed orders yet",
+      isCompleted: true,
+    );
+  }
+
+  Widget _orderList(
+    Rxn<GetOrderByIdResponseModel> source, {
+    required String emptyMessage,
+    bool isCompleted = false,
+  }) {
     return Obx(() {
-      if (orderController.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
+      final loading = orderController.isFetchingOrders.value;
+      final data = source.value;
+
+      if (loading || data == null) {
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: 3,
+          itemBuilder: (_, __) => ShimmerWidgets.orderCard(),
+        );
       }
 
-      final data = orderController.completedOrder.value;
-      if (data == null || data.orders.isEmpty) {
-        return const Center(child: Text("No completed orders yet"));
+      if (data.orders.isEmpty) {
+        return Center(child: Text(emptyMessage));
       }
 
       return ListView.builder(
@@ -119,19 +119,34 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
         itemCount: data.orders.length,
         itemBuilder: (context, index) {
           final order = data.orders[index];
-          return _buildOrderCard(order, isCompleted: true);
+          return _buildOrderCard(order, isCompleted: isCompleted);
         },
       );
     });
   }
 
-  Widget _buildOrderCard(dynamic order, {bool isCompleted = false}) {
+  Widget _buildOrderCard(Order order, {bool isCompleted = false}) {
+    final statusColor = order.status == "Delivered"
+        ? Colors.green.shade700
+        : const Color(0xFF7F3615);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFF4E8), Color(0xFFFFE2C2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,20 +161,24 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                   color: Colors.grey,
                 ),
               ),
-              Text(
-                order.status ?? "Delivered",
-                style: TextStyle(
-                  color: order.status == "Delivered"
-                      ? Colors.green.shade700
-                      : Colors.green,
-                  fontWeight: FontWeight.bold,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Text(
+                  order.status,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
 
-          // Items List
           ...order.items.map<Widget>((orderItem) {
             final item = orderItem.item;
             return Padding(
@@ -167,13 +186,13 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.08),
+                  color: Colors.white.withOpacity(0.75),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 6,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -201,7 +220,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                             item.name,
                             style: const TextStyle(
                               fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -211,22 +230,6 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                           ),
                           if (isCompleted) ...[
                             const SizedBox(height: 6),
-                            // TextButton(
-                            //   onPressed: () => _showRatingDialog(order, orderItem), // Pass order + orderItem
-                            //   style: TextButton.styleFrom(
-                            //     padding: EdgeInsets.zero,
-                            //     minimumSize: const Size(0, 0),
-                            //     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            //   ),
-                            //   child: const Text(
-                            //     "Rate & Review",
-                            //     style: TextStyle(
-                            //       color: Color(0xFF7F3615),
-                            //       fontWeight: FontWeight.w600,
-                            //       fontSize: 14,
-                            //     ),
-                            //   ),
-                            // ),
                           ],
                         ],
                       ),
@@ -253,15 +256,82 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
               Text(
                 "Total: \$${order.totalAmount.toStringAsFixed(2)}",
                 style: const TextStyle(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   fontSize: 17,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: _buildReorderButton(order),
+          ),
         ],
       ),
     );
+  }
+
+  Widget _buildReorderButton(Order order) {
+    return Obx(() {
+      final isReordering = orderController.reorderingOrders.contains(order.id);
+
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1B76FF), Color(0xFF1153FA)],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1B76FF).withOpacity(0.25),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: isReordering ? null : () => orderController.reorderOrder(order),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.refresh_rounded, color: Colors.white, size: 16),
+                  const SizedBox(width: 6),
+                  if (isReordering)
+                    ShimmerLoader(
+                      isLoading: true,
+                      baseColor: Colors.white.withOpacity(0.35),
+                      highlightColor: Colors.white,
+                      child: Container(
+                        width: 70,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    )
+                  else
+                    const Text(
+                      "Reorder",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    });
   }
 
   // // Rating Dialog

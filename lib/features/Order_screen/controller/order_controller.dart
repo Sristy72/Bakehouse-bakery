@@ -22,6 +22,8 @@ class OrderController extends BaseController {
   final Rxn<GetCartResponseModel> cart = Rxn<GetCartResponseModel>();
   final Rxn<GetOrderByIdResponseModel> ongoingOrder = Rxn<GetOrderByIdResponseModel>();
   final Rxn<GetOrderByIdResponseModel> completedOrder = Rxn<GetOrderByIdResponseModel>();
+  final RxBool isFetchingOrders = false.obs;
+  final RxSet<String> reorderingOrders = <String>{}.obs;
 
   final _addCartRepo = Get.find<CartRepository>();
 
@@ -33,8 +35,16 @@ class OrderController extends BaseController {
   void onInit() {
     super.onInit();
     fetchCart();
-    fetchOngoingOrders();
-    fetchCompletedOrders();
+    refreshOrders();
+  }
+
+  Future<void> refreshOrders() async {
+    isFetchingOrders.value = true;
+    await Future.wait([
+      fetchOngoingOrders(silent: true),
+      fetchCompletedOrders(silent: true),
+    ]);
+    isFetchingOrders.value = false;
   }
 
   Future<void> fetchCart() async {
@@ -192,7 +202,8 @@ class OrderController extends BaseController {
     );
   }
 
-  Future<void> fetchOngoingOrders() async {
+  Future<void> fetchOngoingOrders({bool silent = false}) async {
+    if (!silent) isFetchingOrders.value = true;
     final result = await _cartRepo.fetchOngoingOrder();
 
     result.fold(
@@ -204,9 +215,11 @@ class OrderController extends BaseController {
         ongoingOrder.value = success.data;
       },
     );
+    if (!silent) isFetchingOrders.value = false;
   }
 
-  Future<void> fetchCompletedOrders() async {
+  Future<void> fetchCompletedOrders({bool silent = false}) async {
+    if (!silent) isFetchingOrders.value = true;
     final result = await _cartRepo.fetchCompletedOrder();
 
     result.fold(
@@ -218,6 +231,66 @@ class OrderController extends BaseController {
         completedOrder.value = success.data;
       },
     );
+    if (!silent) isFetchingOrders.value = false;
+  }
+
+  Future<void> reorderOrder(Order order) async {
+    final userId = await _authStorageService.getUserId();
+    if (userId == null || userId.isEmpty) {
+      Get.snackbar('Error', 'User ID not found. Please log in again.');
+      return;
+    }
+
+    reorderingOrders.add(order.id);
+    reorderingOrders.refresh();
+
+    final failedItems = <String>[];
+
+    try {
+      for (final orderItem in order.items) {
+        try {
+          final request = AddItemRequest(
+            userId: userId,
+            itemId: orderItem.item.id,
+            quantity: orderItem.quantity,
+          );
+
+          final result = await _addCartRepo.addCart(
+            request,
+            userId,
+            orderItem.item.id,
+            orderItem.quantity,
+          );
+
+          result.fold(
+            (fail) => failedItems.add(orderItem.item.name),
+            (_) {},
+          );
+        } catch (_) {
+          failedItems.add(orderItem.item.name);
+        }
+      }
+
+      await fetchCart();
+
+      if (failedItems.isNotEmpty) {
+        Get.snackbar(
+          "Some items skipped",
+          "Could not reorder ${failedItems.join(', ')}",
+          backgroundColor: Colors.orange.shade200,
+        );
+      } else {
+        Get.snackbar(
+          "Added to cart",
+          "Everything from this order is back in your cart.",
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      }
+    } finally {
+      reorderingOrders.remove(order.id);
+      reorderingOrders.refresh();
+    }
   }
 
   Future<void> placeOrder(String address, String phone) async {

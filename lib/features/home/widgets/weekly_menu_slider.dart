@@ -1,9 +1,9 @@
 import 'dart:async';
+import 'package:danielabake/core/common/shimmer/shimmer_widgets.dart';
 import 'package:danielabake/features/home/widgets/weekly_menu_card.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/weekly_menu_controller.dart';
-import '../controller/home_controller.dart';
 
 class WeeklyMenuSlider extends StatefulWidget {
   const WeeklyMenuSlider({super.key});
@@ -64,20 +64,27 @@ class _WeeklyMenuSliderState extends State<WeeklyMenuSlider> {
         final weeklyMenu = _controller.weeklyMenuByDay;
 
         if (weeklyMenu.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
+          return PageView.builder(
+            controller: _pageController,
+            itemCount: 3,
+            itemBuilder: (_, __) => ShimmerWidgets.weeklyMenuCard(),
+          );
         }
 
-        return PageView.builder(
-          controller: _pageController,
-          clipBehavior: Clip.none,
-          // ❌ REMOVE itemCount → infinite
-          itemBuilder: (_, index) {
-            final dayIndex = index % _controller.days.length;
-            final day = _controller.days[dayIndex];
-            final items = weeklyMenu[day] ?? [];
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 320),
+          child: PageView.builder(
+            key: const ValueKey('weekly-menu'),
+            controller: _pageController,
+            clipBehavior: Clip.none,
+            itemBuilder: (_, index) {
+              final dayIndex = index % _controller.days.length;
+              final day = _controller.days[dayIndex];
+              final items = weeklyMenu[day] ?? [];
 
-            return WeeklyMenuCard(day: day, items: items);
-          },
+              return WeeklyMenuCard(day: day, items: items);
+            },
+          ),
         );
       }),
     );

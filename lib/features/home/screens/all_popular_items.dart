@@ -1,4 +1,5 @@
 import 'dart:developer' as DPrint;
+import 'package:danielabake/core/common/shimmer/shimmer_widgets.dart';
 import 'package:danielabake/core/common/widgets/abbbar_search.dart';
 import 'package:danielabake/core/common/widgets/app_scaffold.dart';
 import 'package:danielabake/features/home/controller/favorite_food_controller.dart';
@@ -6,7 +7,6 @@ import 'package:danielabake/features/home/controller/home_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../Order_screen/controller/order_controller.dart';
-import '../controller/cart_controller.dart';
 import '../widgets/models/detail_food_model.dart';
 import '../widgets/popular_items.dart';
 import 'food_details_screen.dart';
@@ -98,7 +98,17 @@ class _AllPopularItemsState extends State<AllPopularItems> {
               : _homeController.allPopularItem.value?.items ?? [];
 
           if (_homeController.isLoading.value && !searching) {
-            return const Center(child: CircularProgressIndicator());
+            return GridView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: gridCount,
+                mainAxisExtent: 255,
+                crossAxisSpacing: width * 0.025,
+                mainAxisSpacing: width * 0.025,
+              ),
+              itemCount: gridCount * 3,
+              itemBuilder: (_, __) => ShimmerWidgets.foodGridCard(),
+            );
           }
 
           if (items.isEmpty) {

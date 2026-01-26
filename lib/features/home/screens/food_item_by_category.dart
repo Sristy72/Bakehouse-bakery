@@ -1,10 +1,10 @@
 import 'dart:developer' as DPrint;
 
+import 'package:danielabake/core/common/shimmer/shimmer_widgets.dart';
 import 'package:danielabake/features/home/controller/category_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../Order_screen/controller/order_controller.dart';
-import '../controller/cart_controller.dart';
 import '../controller/favorite_food_controller.dart';
 import '../widgets/models/detail_food_model.dart';
 import '../widgets/popular_items.dart';
@@ -55,7 +55,19 @@ class _FoodListScreenState extends State<FoodListScreen> {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return Padding(
+            padding: const EdgeInsets.all(12),
+            child: GridView.builder(
+              itemCount: gridCount * 2,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: gridCount,
+                mainAxisExtent: 255,
+                crossAxisSpacing: width * 0.035,
+                mainAxisSpacing: height * 0.02,
+              ),
+              itemBuilder: (context, _) => ShimmerWidgets.foodGridCard(),
+            ),
+          );
         }
 
         if (controller.specificItems.value == null ||

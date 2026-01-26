@@ -1,12 +1,9 @@
+import 'package:danielabake/core/common/shimmer/shimmer_widgets.dart';
 import 'package:danielabake/features/chat_screen/controller/message_controller.dart';
 import 'package:danielabake/features/profile_screens/controller/profile_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
-
 import '../../../core/common/widgets/app_scaffold.dart';
-import '../../../core/network/constants/key_constants.dart';
-import '../../../core/network/services/secure_store_services.dart';
 import '../../profile_screens/widgets/chat_list_tile.dart';
 import '../widgets/profile.dart';
 import 'messaging_screen.dart';
@@ -21,7 +18,6 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _profileController = Get.find<ProfileController>();
   final _msgController = Get.find<MessageController>();
-  final SecureStoreServices _secureStoreServices = SecureStoreServices();
 
 
   String conversationId = "";
@@ -63,7 +59,9 @@ class _ChatScreenState extends State<ChatScreen> {
             // User profile
             Obx(() {
               final user = _profileController.userInfo.value;
-              if (user == null) return const CircularProgressIndicator();
+              if (user == null) {
+                return ShimmerWidgets.profileHeader();
+              }
 
               return Profile(
                 name: user.fullName,
@@ -76,7 +74,9 @@ class _ChatScreenState extends State<ChatScreen> {
             // Chat with admin
             Obx(() {
               final admin = _msgController.admin.value;
-              if (admin == null) return const CircularProgressIndicator();
+              if (admin == null) {
+                return ShimmerWidgets.chatTile();
+              }
 
               return GestureDetector(
                 onTap: () {
